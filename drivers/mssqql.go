@@ -347,11 +347,11 @@ func (db *MSSQL) UpdateRecord(database, table, column, value, primaryKeyColumnNa
 	}
 
 	query := "UPDATE "
-	query += table
+	query += db.FormatReference(table) // Use FormatReference here
 	query += " SET "
-	query += column
+	query += db.FormatReference(column) // Use FormatReference here
 	query += " = @p1 WHERE "
-	query += primaryKeyColumnName
+	query += db.FormatReference(primaryKeyColumnName) // Use FormatReference here
 	query += " = @p2"
 	_, err := db.Connection.Exec(query, value, primaryKeyValue)
 
@@ -376,9 +376,9 @@ func (db *MSSQL) DeleteRecord(database, table, primaryKeyColumnName, primaryKeyV
 	}
 
 	query := "DELETE FROM "
-	query += table
+	query += db.FormatReference(table) // Use FormatReference here
 	query += " WHERE "
-	query += primaryKeyColumnName
+	query += db.FormatReference(primaryKeyColumnName) // Use FormatReference here
 	query += " = @p1"
 	_, err := db.Connection.Exec(query, primaryKeyValue)
 
@@ -452,13 +452,11 @@ func (db *MSSQL) ExecuteQuery(query string) ([][]string, int, error) {
 
 func (db *MSSQL) ExecutePendingChanges(changes []models.DBDMLChange) error {
 	var queries []models.Query
-
 	for _, change := range changes {
-
-		formattedTableName := db.FormatReference(change.Table)
-
+		fmt.Printf("Raw Table: %s, Values: %+v, PKInfo: %+v\n", change.Table, change.Values, change.PrimaryKeyInfo)
+		cleanTable := strings.Trim(change.Table, "[]")
+		formattedTableName := db.FormatReference(cleanTable)
 		switch change.Type {
-
 		case models.DMLInsertType:
 			queries = append(queries, buildInsertQuery(formattedTableName, change.Values, db))
 		case models.DMLUpdateType:
@@ -467,9 +465,7 @@ func (db *MSSQL) ExecutePendingChanges(changes []models.DBDMLChange) error {
 			queries = append(queries, buildDeleteQuery(formattedTableName, change.PrimaryKeyInfo, db))
 		}
 	}
-
 	logger.Info("queries", map[string]any{"queries": queries})
-
 	return queriesInTransaction(db.Connection, queries)
 }
 

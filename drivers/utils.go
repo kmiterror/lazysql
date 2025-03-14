@@ -121,7 +121,8 @@ func buildUpdateQuery(sanitizedTableName string, values []models.CellValue, prim
 
 	sanitizedCols := make([]string, len(values))
 	for i, value := range values {
-		sanitizedCols[i] = driver.FormatReference(value.Column)
+		cleanColumn := strings.Trim(value.Column, "[]") // Remove existing brackets
+		sanitizedCols[i] = driver.FormatReference(cleanColumn)
 	}
 
 	args := make([]any, len(values))
@@ -133,8 +134,9 @@ func buildUpdateQuery(sanitizedTableName string, values []models.CellValue, prim
 
 	sanitizedPrimaryKeyInfo := make([]models.PrimaryKeyInfo, len(primaryKeyInfo))
 	for i, primaryKey := range primaryKeyInfo {
+		cleanPKName := strings.Trim(primaryKey.Name, "[]") // Remove existing brackets
 		sanitizedPrimaryKeyInfo[i] = models.PrimaryKeyInfo{
-			Name:  driver.FormatReference(primaryKey.Name),
+			Name:  driver.FormatReference(cleanPKName),
 			Value: primaryKey.Value,
 		}
 	}
